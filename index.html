@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hostel Booking Platform</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<header class="bg-blue-600 text-white p-4 text-center text-xl font-bold">
+  Hostel Booking Platform
+</header>
+
+<!-- AUTH SECTION -->
+<section id="authSection" class="p-4 max-w-md mx-auto">
+
+<h2 class="text-lg font-bold mb-3">Sign Up / Login</h2>
+
+<!-- SIGN UP -->
+<div class="bg-white p-3 rounded mb-4">
+  <h3 class="font-semibold mb-2">Sign Up</h3>
+
+  <input id="fn" placeholder="First Name" class="border p-2 w-full mb-2 rounded">
+  <input id="ln" placeholder="Last Name" class="border p-2 w-full mb-2 rounded">
+  <input id="email" type="email" placeholder="Email" class="border p-2 w-full mb-2 rounded">
+  <input id="phone" placeholder="Phone Number" class="border p-2 w-full mb-2 rounded">
+  <input id="nin" placeholder="National ID Number" class="border p-2 w-full mb-2 rounded">
+  <input id="district" placeholder="District" class="border p-2 w-full mb-2 rounded">
+  <input id="password" type="password" placeholder="Password" class="border p-2 w-full mb-2 rounded">
+
+  <button onclick="signup()" class="bg-green-500 text-white w-full p-2 rounded">
+    Create Account
+  </button>
+</div>
+
+<!-- LOGIN -->
+<div class="bg-white p-3 rounded">
+  <h3 class="font-semibold mb-2">Login</h3>
+
+  <input id="loginId" placeholder="Email or Phone Number"
+    class="border p-2 w-full mb-2 rounded">
+
+  <input id="loginPassword" type="password" placeholder="Password"
+    class="border p-2 w-full mb-2 rounded">
+
+  <button onclick="login()" class="bg-blue-500 text-white w-full p-2 rounded">
+    Login
+  </button>
+</div>
+
+</section>
+
+<!-- USER DASHBOARD -->
+<section id="userDashboard" class="hidden p-4">
+<h2 class="text-lg font-bold mb-2">Welcome <span id="userName"></span></h2>
+<div id="hostelList" class="space-y-3"></div>
+<button onclick="logout()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded">
+Logout
+</button>
+</section>
+
+<!-- ADMIN DASHBOARD -->
+<section id="adminDashboard" class="hidden p-4">
+<h2 class="text-lg font-bold mb-3">Admin Dashboard</h2>
+
+<div class="bg-white p-3 rounded mb-4">
+<h3 class="font-semibold mb-2">Add Hostel</h3>
+<input id="hName" placeholder="Hostel Name" class="border p-2 w-full mb-2 rounded">
+<input id="hLocation" placeholder="Location" class="border p-2 w-full mb-2 rounded">
+<input id="hPrice" placeholder="Price (UGX)" class="border p-2 w-full mb-2 rounded">
+<button onclick="addHostel()" class="bg-blue-500 text-white p-2 w-full rounded">
+Add Hostel
+</button>
+</div>
+
+<div class="bg-white p-3 rounded">
+<h3 class="font-semibold mb-2">Notifications</h3>
+<div id="notifications"></div>
+</div>
+
+<button onclick="logout()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded">
+Logout
+</button>
+</section>
+
+<script>
+// ---------------- STORAGE ----------------
+let users = JSON.parse(localStorage.getItem("users")) || [];
+let hostels = JSON.parse(localStorage.getItem("hostels")) || [
+  {name:"Akamwesi Hostel", location:"Old Port Bell Rd", price:1750000},
+  {name:"Evelyn Hostel", location:"Kampala", price:500000},
+  {name:"Valley Courts", location:"Old Port Bell Rd", price:1500000},
+  {name:"University Courts", location:"Kiswa", price:1450000},
+  {name:"Maimood Hostel", location:"Makerere", price:1300000},
+  {name:"Las Vegas (Muni)", location:"Muni", price:450000},
+  {name:"Kingdom Hostel", location:"Muni", price:320000},
+  {name:"Tupendane Hostel", location:"UCU Area", price:800000},
+  {name:"Helsican Hostel", location:"Makerere", price:700000},
+  {name:"Kasalita Hostel", location:"Kyambogo", price:1100000}
+];
+let notifications = JSON.parse(localStorage.getItem("notifications")) || [];
+
+// Autofill login
+if(localStorage.getItem("lastUser")){
+  loginId.value = localStorage.getItem("lastUser");
+}
+
+// ---------------- SIGNUP ----------------
+function signup(){
+  if(!fn.value||!ln.value||!email.value||!phone.value||!nin.value||!district.value||!password.value)
+    return alert("Fill all fields");
+
+  users.push({
+    fn:fn.value,
+    ln:ln.value,
+    email:email.value,
+    phone:phone.value,
+    nin:nin.value,
+    district:district.value,
+    password:password.value
+  });
+
+  localStorage.setItem("users",JSON.stringify(users));
+  notifyAdmin(`New signup: ${fn.value} ${ln.value} (${email.value})`);
+  alert("Account created. Verification code sent (simulated).");
+}
+
+// ---------------- LOGIN ----------------
+function login(){
+  if(loginId.value==="admin@hostel.com" && loginPassword.value==="admin123"){
+    authSection.classList.add("hidden");
+    adminDashboard.classList.remove("hidden");
+    loadNotifications();
+    return;
+  }
+
+  let user = users.find(u =>
+    (u.email===loginId.value || u.phone===loginId.value)
+    && u.password===loginPassword.value
+  );
+
+  if(!user) return alert("Invalid login");
+
+  localStorage.setItem("lastUser", loginId.value);
+  authSection.classList.add("hidden");
+  userDashboard.classList.remove("hidden");
+  userName.innerText = user.fn;
+  loadHostels();
+}
+
+// ---------------- HOSTELS ----------------
+function loadHostels(){
+  hostelList.innerHTML="";
+  hostels.forEach(h=>{
+    hostelList.innerHTML+=`
+      <div class="bg-white p-3 rounded shadow">
+        <h3 class="font-bold">${h.name}</h3>
+        <p>${h.location}</p>
+        <p>UGX ${h.price.toLocaleString()}</p>
+        <button onclick="book('${h.name}')" class="mt-2 bg-green-500 text-white px-3 py-1 rounded">
+          Book
+        </button>
+      </div>`;
+  });
+}
+
+function book(name){
+  notifyAdmin(`Booking request for ${name}`);
+  alert("Booking submitted. Verification code sent.");
+}
+
+// ---------------- ADMIN ----------------
+function addHostel(){
+  hostels.push({name:hName.value,location:hLocation.value,price:Number(hPrice.value)});
+  localStorage.setItem("hostels",JSON.stringify(hostels));
+  alert("Hostel added");
+}
+
+function notifyAdmin(msg){
+  notifications.push({msg,time:new Date().toLocaleString()});
+  localStorage.setItem("notifications",JSON.stringify(notifications));
+}
+
+function loadNotifications(){
+  notificationsDiv = document.getElementById("notifications");
+  notificationsDiv.innerHTML="";
+  notifications.forEach(n=>{
+    notificationsDiv.innerHTML+=`
+      <div class="border p-2 mb-2 rounded">
+        ${n.msg}<br><small>${n.time}</small>
+      </div>`;
+  });
+}
+
+// ---------------- LOGOUT ----------------
+function logout(){
+  location.reload();
+}
+</script>
+
+</body>
+</html>
